@@ -1,0 +1,278 @@
+#dec keyGen
+#dec intHex
+#dec hexInt
+#dec pad
+#dec shiftByte
+#dec dePad
+#dec roundGen
+#dec encrypt
+#dec decrypt
+#dec intBin
+#dec binInt
+
+null main()<
+> str choice: args[0];
+> if (choice == "1")<
+>> encrypt();
+>< nor (choice == "2")<
+>> decrypt();
+><
+<
+
+null encrypt()<
+> int rounds: 20;
+> str choice: args[1];
+> []int key: [];
+> if (choice == "1")<
+>> key = keyGen();
+>> str toprint: "";
+>> for (int i >> 0, 64, 1)<
+>>> toprint += intHex(key[i]);
+>><
+>> dis: "Your key: ";
+>> dis: toprint;
+>< else <
+>> str keyStr: args[2];
+>> for (int i >> 0, 128, 2)<
+>>> str: char, keyStr[i], tmp1;
+>>> str: char, keyStr[i+1], tmp2;
+>>> push: key, hexInt(tmp1 + tmp2);
+>><
+><
+> []int message: [];
+> str msg: args[3];
+> msg = pad(msg);
+> for (int i >> 0, 64, 1)<
+>> int: char, msg[i], tmp3;
+>> push: message, tmp3;
+><
+// Combine key and message
+> for (int i >> 0, 64, 1)<
+>> message[i] = message[i] ^ key[i];
+><
+// Round function
+> for (int r >> 0, rounds, 1)<
+>> for (int i >> 0, 64, 1)<
+>>> str num: intBin(message[i]);
+>>> str left: "";
+>>> str right: "";
+>>> for (int j >> 0, 8, 1)<
+>>>> if (j < 4)<
+>>>>> left += string(num[j]);
+>>>>< else <
+>>>>> right += string(num[j]);
+>>>><
+>>><
+>>> int leftI: binInt(left);
+>>> int rightI: binInt(right);
+>>> message[i] = binInt(intBin(leftI ^ rightI) + left);
+>><
+>> for (int i >> 0, 8, 1)<
+>>> for (int j >> 0, 8, 1)<
+>>>> key[i*8+j] = shiftByte(key[i*8+j], j);
+>>><
+>><
+>> for (int i >> 0, 8, 1)<
+>>> []int row: [];
+>>> for (int j >> 0, 8, 1)<
+>>>> push: row, key[i*8+j];
+>>><
+>>> for (int j >> 0, 8, 1)<
+>>>> key[i*8+((j+i)%8)] = row[j];
+>>><
+>><
+>> for (int i >> 0, 8, 1)<
+>>> []int column: [];
+>>> for (int j >> 0, 8, 1)<
+>>>> push: column, key[j*8+i];
+>>><
+>>> for (int j >> 0, 8, 1)<
+>>>> key[j*8+i] = column[(j-i+8)%8];
+>>><
+>><
+>> for (int i >> 0, 64, 1)<
+>>> message[i] = message[i] ^ key[i];
+>><
+><
+> str final: "";
+> for (int i >> 0, 64, 1)<
+>> final += intHex(message[i]);
+><
+> dis: final;
+<
+
+null decrypt()<
+> str msg: args[1];
+> str kee: args[2];
+> int rounds: 20;
+> []int message: [];
+> []int key: [];
+> for (int i >> 0, 128, 2)<
+>> push: message, hexInt(string(msg[i])+string(msg[i+1]));
+>> push: key, hexInt(string(kee[i])+string(kee[i+1]));
+><
+> for (int r << rounds-1, -1, 1)<
+>> []int currRound: [];
+>> currRound = roundGen(key, r);
+>> for (int i >> 0, 64, 1)<
+>>> message[i] = message[i] ^ currRound[i];
+>><
+>> for (int i >> 0, 64, 1)<
+>>> str tmp1: "";
+>>> str tmp2: "";
+>>> str t3: intBin(message[i]);
+>>> for (int j >> 0, 4, 1)<
+>>>> tmp1 += string(t3[j]);
+>>>> tmp2 += string(t3[j+4]);
+>>><
+>>> message[i] = binInt(tmp2) * 16 + (binInt(tmp1) ^ binInt(tmp2));
+>><
+><
+> for (int i >> 0, 64, 1)<
+>> message[i] = message[i] ^ key[i];
+><
+> str fn: "";
+> for (int i >> 0, 64, 1)<
+>> fn += string(rune(message[i]));
+><
+> dis: dePad(fn);
+<
+
+str dePad(str m)<
+> str out: "";
+> for (int i >> 0, len(m), 1)<
+>> if (m[i] != '`')<
+>>> out += string(m[i]);
+>><
+><
+> return out;
+<
+
+[]int keyGen()<
+> []int out: [0];
+> for (int i >> 0, 64, 1)<
+>> random: a, 0, 256;
+>> push: out, a;
+><
+> remove: out, 0;
+> return out;
+<
+
+[]int roundGen([]int k, int ro)<
+> []int key: [];
+> for (int i >> 0, 64, 1)<
+>> push: key, k[i];
+><
+> for (int r >> 0, ro+1, 1)<
+>> for (int i >> 0, 8, 1)<
+>>> for (int j >> 0, 8, 1)<
+>>>> key[i*8+j] = shiftByte(key[i*8+j], j);
+>>><
+>><
+>> for (int i >> 0, 8, 1)<
+>>> []int row: [];
+>>> for (int j >> 0, 8, 1)<
+>>>> push: row, key[i*8+j];
+>>><
+>>> for (int j >> 0, 8, 1)<
+>>>> key[i*8+((j+i)%8)] = row[j];
+>>><
+>><
+>> for (int i >> 0, 8, 1)<
+>>> []int column: [];
+>>> for (int j >> 0, 8, 1)<
+>>>> push: column, key[j*8+i];
+>>><
+>>> for (int j >> 0, 8, 1)<
+>>>> key[j*8+i] = column[(j-i+8)%8];
+>>><
+>><
+>> r = r;
+><
+> return key;
+<
+
+str intHex(int val)<
+> int left: val / 16;
+> int right: val % 16;
+> []str letters: ["a", "b", "c", "d", "e", "f"];
+> str out: "";
+> if (left < 10)<
+>> str: int, left, tmp1;
+>> out += tmp1;
+>< else <
+>> out += letters[left-10];
+><
+> if (right < 10)<
+>> str: int, right, tmp2;
+>> out += tmp2;
+>< else <
+>> out += letters[right-10];
+><
+> return out;
+<
+
+int hexInt(str val)<
+> int out: 0;
+> []str chars: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"];
+> str: char, val[0], ll;
+> str: char, val[1], rr;
+> arrIndexS: chars, ll, left;
+> arrIndexS: chars, rr, right;
+> out += left*16;
+> out += right;
+> return out;
+<
+
+str pad(str inp)<
+> str out: inp;
+> if (len(out) > 64)<
+>> dis: "Message too long";
+>> return "";
+>< else <
+>> int missing: 64 - len(out);
+>> for (int i >> 0, missing, 1)<
+>>> out += "`";
+>><
+><
+> return out;
+<
+
+str intBin(int inp)<
+> str out: "";
+> int cpy: inp;
+> int counter: 128;
+> for (int i >> 0, 8, 1)<
+>> if (cpy >= counter)<
+>>> out += "1";
+>>> cpy -= counter;
+>>< else <
+>>> out += "0";
+>><
+>> counter = counter / 2;
+>> i = i;
+><
+> return out;
+<
+
+int binInt(str bin)<
+> int out: 0;
+> int counter: 1;
+> for (int i << len(bin)-1, -1, 1)<
+>> if (bin[i] == '1')<
+>>> out += counter;
+>><
+>> counter = counter * 2;
+>> i = i;
+><
+> return out;
+<
+
+int shiftByte(int byte, int shift)<
+> str byt: intBin(byte);
+> str out: "";
+> for (int i >> len(byt)-shift, len(byt)-shift+len(byt), 1)<
+>> out += string(byt[i%len(byt)]);
+><
+> return binInt(out);
+<
