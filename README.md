@@ -1,2 +1,3 @@
 # Slowest-Password-Manager
-An extraordinarily slow password manager that uses my other projects
+
+Also untilizes a Cloudflare lava lamp wall esque random generator (uses a live polar bear camera from the San Diego zoo).
